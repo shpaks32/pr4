@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', function () {
       type: 'radio'
     },
     {
-      question: 'Додаткові інгредієнти ?',
+      question: 'Додаткові інгредієнти?',
       answers: [
         { title: 'Помідор', url: './image/tomato.png' },
         { title: 'Огірок', url: './image/cucumber.png' },
@@ -45,55 +45,124 @@ document.addEventListener('DOMContentLoaded', function () {
         { title: 'Гірчичний', url: './image/sauce3.png' }
       ],
       type: 'radio'
+    },
+    {
+      question: 'Enter your number',
+      answers: [],
+      type: 'number'
     }
   ]
 
   let numberQuestion = 0
 
-  const checkButtons = () => {
-    if (numberQuestion === 0) {
-      prevButton.classList.add('d-none')
-    } else {
-      prevButton.classList.remove('d-none')
-    }
+  const finalAnswers = []
 
-    if (numberQuestion === questions.length - 1) {
-      nextButton.classList.add('d-none')
-      sendButton.classList.remove('d-none')
-    } else {
-      nextButton.classList.remove('d-none')
-      sendButton.classList.add('d-none')
+  const checkButtons = () => {
+    switch (numberQuestion) {
+      case 0:
+        prevButton.classList.add('d-none')
+        nextButton.classList.remove('d-none')
+        sendButton.classList.add('d-none')
+        break
+
+      case questions.length - 1:
+        prevButton.classList.remove('d-none')
+        nextButton.classList.add('d-none')
+        sendButton.classList.remove('d-none')
+        break
+
+      default:
+        prevButton.classList.remove('d-none')
+        nextButton.classList.remove('d-none')
+        sendButton.classList.add('d-none')
+        break
     }
   }
 
   const renderQuestions = index => {
+    formAnswers.innerHTML = ''
     const currentQuestion = questions[index]
     questionTitle.textContent = currentQuestion.question
 
-    let answersHtml = ''
+    switch (currentQuestion.type) {
+      case 'number':
+        const item = `
+          <div class="answers-item d-flex flex-column w-100">
+            <input type="tel" class="form-control" id="numberPhone" placeholder="Введіть ваш номер...">
+          </div>
+        `
+        formAnswers.innerHTML = item
+        break
 
-    currentQuestion.answers.forEach((answer, i) => {
-      answersHtml += `
-        <div class="answers-item d-flex flex-column">
-            <input 
-              type="${currentQuestion.type}" 
-              id="answerItem${i}" 
-              name="answer" 
-              class="d-none" 
-              value="${answer.title}"
-            >
-            <label for="answerItem${i}" class="d-flex flex-column justify-content-between">
+      default:
+        let answersHtml = ''
+        currentQuestion.answers.forEach((answer, i) => {
+          answersHtml += `
+            <div class="answers-item d-flex flex-column">
+              <input 
+                type="${currentQuestion.type}" 
+                id="answerItem${i}" 
+                name="answer" 
+                class="d-none" 
+                value="${answer.title}"
+              >
+              <label for="answerItem${i}" class="d-flex flex-column justify-content-between">
                 <img class="answerImg" src="${answer.url}" alt="${answer.title}">
                 <span>${answer.title}</span>
-            </label>
-        </div>
-      `
-    })
+              </label>
+            </div>
+          `
+        })
+        formAnswers.innerHTML = answersHtml
+        break
+    }
+  }
 
-    formAnswers.innerHTML = answersHtml
+  const collectData = () => {
+    const currentQuestion = questions[numberQuestion]
+    let answerValue = null
+
+    if (currentQuestion.type === 'checkbox') {
+      const checkedItems = formAnswers.querySelectorAll(
+        'input[type="checkbox"]:checked'
+      )
+      if (checkedItems.length > 0) {
+        answerValue = Array.from(checkedItems).map(item => item.value)
+      }
+    } else if (currentQuestion.type === 'radio') {
+      const checkedItem = formAnswers.querySelector(
+        'input[type="radio"]:checked'
+      )
+      if (checkedItem) {
+        answerValue = checkedItem.value
+      }
+    } else if (currentQuestion.type === 'number') {
+      const inputItem = formAnswers.querySelector('#numberPhone')
+      if (inputItem) {
+        answerValue = inputItem.value
+      }
+    }
+
+    if (answerValue) {
+      const existingIndex = finalAnswers.findIndex(
+        item => item.question === currentQuestion.question
+      )
+      if (existingIndex !== -1) {
+        finalAnswers[existingIndex] = {
+          question: currentQuestion.question,
+          answer: answerValue
+        }
+      } else {
+        finalAnswers.push({
+          question: currentQuestion.question,
+          answer: answerValue
+        })
+      }
+    }
   }
 
   nextButton.addEventListener('click', () => {
+    collectData()
     if (numberQuestion < questions.length - 1) {
       numberQuestion++
       playTest()
@@ -107,9 +176,16 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   })
 
+  sendButton.addEventListener('click', () => {
+    collectData()
+    console.log(finalAnswers)
+    modalBlock.classList.remove('d-block')
+  })
+
   btnOpenModal.addEventListener('click', () => {
     modalBlock.classList.add('d-block')
     numberQuestion = 0
+    finalAnswers.length = 0
     playTest()
   })
 
