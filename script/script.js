@@ -1,3 +1,25 @@
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js'
+import {
+  getDatabase,
+  ref,
+  push
+} from 'https://www.gstatic.com/firebasejs/12.6.0/firebase-database.js'
+
+const firebaseConfig = {
+  apiKey: 'AIzaSyBWbvlEJ1BSgYhC74y3DBL92Cd_bAnglcI',
+  authDomain: 'burger-quiz-54003.firebaseapp.com',
+  databaseURL:
+    'https://burger-quiz-54003-default-rtdb.europe-west1.firebasedatabase.app',
+  projectId: 'burger-quiz-54003',
+  storageBucket: 'burger-quiz-54003.firebasestorage.app',
+  messagingSenderId: '44040331208',
+  appId: '1:44040331208:web:2ca09ce189273d88782afd',
+  measurementId: 'G-H8JZPSLF8X'
+}
+
+const app = initializeApp(firebaseConfig)
+const db = getDatabase(app)
+
 document.addEventListener('DOMContentLoaded', function () {
   const btnOpenModal = document.querySelector('#btnOpenModal')
   const modalBlock = document.querySelector('#modalBlock')
@@ -54,7 +76,6 @@ document.addEventListener('DOMContentLoaded', function () {
   ]
 
   let numberQuestion = 0
-
   const finalAnswers = []
 
   const checkButtons = () => {
@@ -87,10 +108,10 @@ document.addEventListener('DOMContentLoaded', function () {
     switch (currentQuestion.type) {
       case 'number':
         const item = `
-          <div class="answers-item d-flex flex-column w-100">
-            <input type="tel" class="form-control" id="numberPhone" placeholder="Введіть ваш номер...">
-          </div>
-        `
+            <div class="answers-item d-flex flex-column w-100">
+              <input type="tel" class="form-control" id="numberPhone" placeholder="Введіть ваш номер...">
+            </div>
+          `
         formAnswers.innerHTML = item
         break
 
@@ -98,20 +119,20 @@ document.addEventListener('DOMContentLoaded', function () {
         let answersHtml = ''
         currentQuestion.answers.forEach((answer, i) => {
           answersHtml += `
-            <div class="answers-item d-flex flex-column">
-              <input 
-                type="${currentQuestion.type}" 
-                id="answerItem${i}" 
-                name="answer" 
-                class="d-none" 
-                value="${answer.title}"
-              >
-              <label for="answerItem${i}" class="d-flex flex-column justify-content-between">
-                <img class="answerImg" src="${answer.url}" alt="${answer.title}">
-                <span>${answer.title}</span>
-              </label>
-            </div>
-          `
+              <div class="answers-item d-flex flex-column">
+                <input 
+                  type="${currentQuestion.type}" 
+                  id="answerItem${i}" 
+                  name="answer" 
+                  class="d-none" 
+                  value="${answer.title}"
+                >
+                <label for="answerItem${i}" class="d-flex flex-column justify-content-between">
+                  <img class="answerImg" src="${answer.url}" alt="${answer.title}">
+                  <span>${answer.title}</span>
+                </label>
+              </div>
+            `
         })
         formAnswers.innerHTML = answersHtml
         break
@@ -178,8 +199,30 @@ document.addEventListener('DOMContentLoaded', function () {
 
   sendButton.addEventListener('click', () => {
     collectData()
-    console.log(finalAnswers)
-    modalBlock.classList.remove('d-block')
+
+    const orderData = {
+      date: new Date().toLocaleString(),
+      details: finalAnswers,
+      phone:
+        finalAnswers.find(item => item.question === 'Enter your number')
+          ?.answer || 'Не вказано'
+    }
+
+    const ordersRef = ref(db, 'orders')
+
+    push(ordersRef, orderData)
+      .then(() => {
+        console.log('Дані успішно відправлені!', orderData)
+        modalBlock.classList.remove('d-block')
+        alert('Дякуємо! Ваше замовлення прийнято.')
+
+        numberQuestion = 0
+        finalAnswers.length = 0
+      })
+      .catch(error => {
+        console.error('Помилка при відправці:', error)
+        alert("Сталася помилка. Перевірте з'єднання з інтернетом.")
+      })
   })
 
   btnOpenModal.addEventListener('click', () => {
